@@ -6,48 +6,48 @@ import json
 from io import *
 from termcolor import colored, cprint
 
-def check_arg():
-    """Realiza el parseo de la llamada al CLI
+def check_arguments():
+    """Parse the call to the CLI
 
     Returns:
-        namespace -- [Espacio de nombre de los parámetros pasados al CLI]
+        namespace -- [Namespaces for all the parameters passed to the CLI]
     """
     parse = argparse.ArgumentParser(prog='import-to-json',
                                     usage='%(prog)s [-h|--help] -e|--excel file.xls -j|--json input.json -s|--swimlane name [-o|--output output.json]',
-                                    description='Añadir tarjetas leídas desde un archivo externo a un fichero JSON exportado de Wekan',
+                                    description='Add cards read from an external file to a JSON file exported from Wekan',
                                     epilog='',
                                     allow_abbrev=False)
     parse.add_argument('-f','--file',
                         type=str,
-                        help='Fichero desde donde se cargan las nuevas tarjetas',
+                        help='File from where new cards are loaded',
                         required=True)    
                         
     parse.add_argument('-j','--json',
                         type=str,
-                        help='JSON exportado desde Wekan',
+                        help='JSON file exported from Wekan',
                         required=True)    
                         
     parse.add_argument('-s','--swimlane',
                         type=str,
-                        help='Swimlane contenedor de las tarjetas creadas',
+                        help='Swimlane containing all imported cards, which may or not may exist',
                         required=True)
 
     parse.add_argument('-o','--output',
-                        help='(Opcional) JSON final con las tarjetas cargadas',
+                        help='(Optional) Final JSON with all cards joined from both files',
                         type=str)
 
     args = parse.parse_args()
     return args
 
 
-def load_json(file):
-    """Leer la información del archivo .json
+def load_from_json(file):
+    """Read and load the json file context
 
     Arguments:
-        file {str} -- Nombre o path del archivo json exportado de wekan
+        file {str} -- Absolute or relative path to json file exported from Wekan
 
     Returns:
-        dict -- Diccionario correspondiente al contenido del archivo json
+        dict -- Data structure corresponding to the content of the json file
     """
     with open(file, 'r') as filePointer:
         context = filePointer.read()
@@ -58,56 +58,63 @@ def load_json(file):
 
 
 def json_summary(jsonDict):
-    """Imprimir el resumen de la información cargado del archivo json
+    """Prints a summary content of the json file loaded 
 
     Arguments:
-        jsonDict {dict} -- Diccionario correspondiente al contenido del archivo json
+        jsonDict {dict} -- Dictionary corresponding to the content of the json file
     """
-    cprint('\n¡JSON importado correctamente!', 'green', 'on_white',attrs=['bold'])
-    print ("Resumen:")
-    print ("\tNombre del tablero: ", jsonDict['title'])
-    print ("\tCantidad de listas: ", len(jsonDict['lists']))
-    print ("\tCantidad de usuarios: ", len(jsonDict['users']))
-    print ("\tCantidad de swimlanes: ", len(jsonDict['swimlanes']))
-    print ("\tCantidad de tarjetas: ", len(jsonDict['cards']))
+    cprint('\nThe json file have been imported correctly!', 'green', 'on_white',attrs=['bold'])
+    print ("Brief summary:")
+    print ("\tBoard imported: ", jsonDict['title'])
+    print ("\tTotal quantity of lists imported: ", len(jsonDict['lists']))
+    print ("\tTotal quantity of users imported: ", len(jsonDict['users']))
+    print ("\tTotal quantity of swimlanes imported: ", len(jsonDict['swimlanes']))
+    print ("\tTotal quantity of cards imported: ", len(jsonDict['cards']))
 
 
-def write_json(file, jsonDict):
-    """Escribiendo el json modificado para el archivo pasado como parámetro a la CLI
+def write_to_json(file, jsonDict):
+    """Writing a dictionary to a json file
 
     Arguments:
-        file {str} -- Nombre o path del archivo json final
-        jsonDict {dict} -- Diccionario correspondiente al contenido del archivo json
+        file {str} -- Absolute or relative path to the json file
+        jsonDict {dict} -- Dictionary with the information to save in the json file
     """
     with open(file,'w') as filePointer:
         filePointer.write(json.dumps(jsonDict, ensure_ascii=False))
         filePointer.close()
 
 
+def there_is_user(user_slug):
+    pass
+
+
+def there_is_swimlane(swimlane_slug):
+    pass
+
+
 def main():
-    """Función que orquesta el script
+    """Main function which orchestrate the script
     """
     error = False
     try:
-        args = check_arg() # Comprabamos que los parámetros están correctos
-        jsonText = load_json(args.json) # Cargamos el archivos .json
-        json_summary(jsonText) # Mostramos el resumen de la carga del archivo json
+        args = check_arguments() # Checking that all needed parameters are right
+        jsonText = load_from_json(args.json) # Loading the json file
+        json_summary(jsonText) # Printing a summary of the json file loaded previously
+
         if args.output == None: 
-            print(json.dumps(jsonText, ensure_ascii=False, indent=4)) # Imprimimos en stdout el json transformado
+            print(json.dumps(jsonText, ensure_ascii=False, indent=4)) # Print to stdout the final JSON   
         else:
-            write_json(args.output, jsonText) # Escribiendo el json modificado para el archivo pasado como parámetro a la CLI
+            write_to_json(args.output, jsonText) # Write to a Json file the result
 
     except FileNotFoundError:
-        print ("Error: Archivo {} no se encuentra".format(args.json))
+        print ("Error: Json file {} not found".format(args.json))
         error = True
     except PermissionError:
-        cprint ("Permiso denegado: No tiene permiso para crear el archivo {}".format(args.output), 'red', attrs=['bold'])
+        cprint ("Denied permission: Do not have permission to create a json file: {}".format(args.output), 'red', attrs=['bold'])
         error = True
     finally:
         if error:
-            cprint("¡Programa finalizado con errores!",'red','on_white',attrs=['bold'])
-        else:
-            cprint("¡Programa finalizado satsfactoriamente!",'green','on_white',attrs=['bold'])
+            cprint("Script execution ends with error!",'red','on_white',attrs=['bold'])
 
 
 if __name__ == "__main__":
