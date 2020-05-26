@@ -84,11 +84,15 @@ def write_to_json(file, jsonDict):
         filePointer.close()
 
 
-def there_is_user(user_slug):
-    pass
+def there_is_user(jsonDict, user_slug):
+    print (jsonDict['users'])
 
 
 def there_is_swimlane(swimlane_slug):
+    pass
+
+
+def add_new_swimlane(name):
     pass
 
 
@@ -105,6 +109,8 @@ def main():
             print(json.dumps(jsonText, ensure_ascii=False, indent=4)) # Print to stdout the final JSON   
         else:
             write_to_json(args.output, jsonText) # Write to a Json file the result
+
+        there_is_user(jsonText, 'franklin-gomez')
 
     except FileNotFoundError:
         print ("Error: Json file {} not found".format(args.json))
