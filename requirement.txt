@@ -1,3 +1,6 @@
 wheel
 pylint
 termcolor
+awesome-slugify
+bson
+openpyxl

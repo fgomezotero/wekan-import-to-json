@@ -3,8 +3,12 @@
 import argparse
 import json
 
-from io import *
+from io import open
 from termcolor import colored, cprint
+from slugify import slugify
+from bson.objectid import ObjectId
+from openpyxl import load_workbook
+from datetime import *
 
 def check_arguments():
     """Parse the call to the CLI
@@ -13,7 +17,7 @@ def check_arguments():
         namespace -- [Namespaces for all the parameters passed to the CLI]
     """
     parse = argparse.ArgumentParser(prog='import-to-json',
-                                    usage='%(prog)s [-h|--help] -e|--excel file.xls -j|--json input.json -s|--swimlane name [-o|--output output.json]',
+                                    usage='%(prog)s [-h|--help] -f|--file (file.xls) -j|--json input.json -s|--swimlane name [-o|--output output.json]',
                                     description='Add cards read from an external file to a JSON file exported from Wekan',
                                     epilog='',
                                     allow_abbrev=False)
@@ -84,17 +88,79 @@ def write_to_json(file, jsonDict):
         filePointer.close()
 
 
-def there_is_user(jsonDict, user_slug):
-    print (jsonDict['users'])
+def there_is_user(userList, user_slug):
+    """Find if a user belong to the board
+
+    Arguments:
+        userList {list} -- list of users belonging to the imported json file
+        user_slug {str} -- User slugify 
+
+    Returns:
+        str -- User ID or None
+    """
+    for user in userList:
+        if user_slug in slugify(user['profile']['fullname'],to_lower=True):
+            return user['_id']
+    return None
 
 
-def there_is_swimlane(swimlane_slug):
-    pass
+def there_is_swimlane(swimlaneList,swimlane_slug):
+    """Find if a swimlane belong to the board
+
+    Arguments:
+        swimlaneList {list} -- list of swimlanes belonging to the imported json file
+        swimlane_slug {str} -- Swimlane slugify
+
+    Returns:
+        str -- Swimlane ID or None
+    """
+    for swimlane in swimlaneList:
+        if swimlane_slug in slugify(swimlane['title'],to_lower=True):
+            return swimlane['_id']
+    return None
+
+def create_new_swimlane(title):
+    """Create a dictionary representing a new swimlane
+
+    Arguments:
+        title {str} -- Swimlane name or title
+
+    Returns:
+        dict -- A new swimlane dictionary
+    """
+    return dict(_id=str(ObjectId()), title=title, archived=False, type='swimlane' )    
 
 
-def add_new_swimlane(name):
-    pass
+def create_new_card(title, description, assignees, startAt, dueAt, listId, labelIds , customFields, swimlaneId)  :
+    return dict(
+                _id=str(ObjectId()), 
+                title=title, 
+                description=description, 
+                assignees= list(assignees), 
+                startAt= startAt, 
+                dueAt= dueAt, 
+                listId= listId, 
+                swimlaneId= swimlaneId,
+                labelIds= list(labelIds),
+                customFields= list(customFields),
+                archived= False
+                )
 
+
+def read_from_excel(pathfile):
+    """Read all rows from the first sheet of the document
+
+    Arguments:
+        pathfile {str} -- Absolute or relative path to the excel file
+
+    Yields:
+        iterator -- Iterator representing all file rows
+    """
+    workbook = load_workbook(filename=pathfile)
+    sheet = workbook.active
+    for row in sheet.iter_rows(min_row=1, max_col=6, values_only=True):
+        yield row
+        
 
 def main():
     """Main function which orchestrate the script
@@ -110,7 +176,10 @@ def main():
         else:
             write_to_json(args.output, jsonText) # Write to a Json file the result
 
-        there_is_user(jsonText, 'franklin-gomez')
+        xlsIterator = read_from_excel(args.file)
+        next(xlsIterator); next(xlsIterator)
+        for row in xlsIterator:
+            print (row)
 
     except FileNotFoundError:
         print ("Error: Json file {} not found".format(args.json))
